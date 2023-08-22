@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # TODO: Ensure this is the correct GitHub homepage where releases can be downloaded for chromedriver.
-SOURCE="http://chromedriver.storage.googleapis.com"
+SOURCE="https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json"
 TOOL_NAME="chromedriver"
 TOOL_TEST="chromedriver --help"
 
@@ -18,14 +18,12 @@ platform() {
   ARCH=$(uname -m)
   PLATFORM=$(uname)
 
-  if [[ $ARCH = "arm64" ]]; then
-    NAME=chromedriver_mac_arm64
-  elif [[ $ARCH = "x86_64" ]]; then
-    if [[ $PLATFORM = "Darwin" ]]; then
-      NAME=chromedriver_mac64
-    else
-      NAME=chromedriver_linux64
-    fi
+  if [[ $ARCH = "arm64" && $PLATFORM = "Darwin" ]]; then
+    NAME=mac-arm64
+  elif [[ $ARCH = "x86_64" && $PLATFORM = "Darwin" ]]; then
+    NAME=mac-x64
+  else
+    NAME=linux64
   fi
   echo "$NAME"
 }
@@ -35,17 +33,16 @@ sort_versions() {
     LC_ALL=C sort -n -t. -k 1,1 -k 2,2n -k 3,3n -k 4,4n -k 5,5n | awk '{print $2}'
 }
 
-rdom() {
-  local IFS=\>
-  read -r -d \< E C
+list_all_versions() {
+  curl -s "$SOURCE" | jq -r '.versions[].version' | sort_versions
 }
 
-list_all_versions() {
-  curl -s "$SOURCE" | while rdom; do
-    if [[ $E = "Key" ]]; then
-      echo "$C"
-    fi
-  done | grep "$(platform)" | cut -d '/' -f 1 | sort_versions
+release_url() {
+  local version platform
+  version="$1"
+  platform="$2"
+
+  curl -s "$SOURCE" | jq -r ".versions[] | select(.version == \"$version\") | .downloads.chromedriver[] | select(.platform == \"$platform\") | .url"
 }
 
 download_release() {
@@ -54,7 +51,8 @@ download_release() {
   filename="$2"
 
   # TODO: Adapt the release URL convention for chromedriver
-  url="${SOURCE}/${version}/$(platform).zip"
+  # url="${SOURCE}/${version}/$(platform).zip"
+  url=$(release_url $version $(platform))
 
   echo "* Downloading $TOOL_NAME release $version..."
   curl "${curl_opts[@]}" -o "$filename" -C - "$url" || fail "Could not download $url"
@@ -71,7 +69,7 @@ install_version() {
 
   (
     mkdir -p "$install_path"
-    cp -r "$ASDF_DOWNLOAD_PATH"/* "$install_path"
+    cp -r "$ASDF_DOWNLOAD_PATH"/chromedriver-$(platform)/* "$install_path"
 
     # TODO: Assert chromedriver executable exists.
     local tool_cmd
