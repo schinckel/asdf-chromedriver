@@ -34,7 +34,12 @@ sort_versions() {
 }
 
 list_all_versions() {
-  curl -s "$SOURCE" | jq -r '.versions[].version' | sort_versions
+  curl -s "$SOURCE" \
+    | sed 's/[,\[]/\n/g' \
+    | sed 's/{//g' \
+    | grep '"version":' \
+    | sed 's/"version":"\(.*\)"/\1/g' \
+    | sort_versions
 }
 
 release_url() {
