@@ -17,7 +17,6 @@
 # Dependencies
 
 - `bash`, `curl`, `zip`: generic POSIX utilities.
-- `jq`: used to parse JSON for versions
 
 # Install
 
