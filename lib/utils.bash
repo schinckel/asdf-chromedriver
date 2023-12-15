@@ -2,10 +2,9 @@
 
 set -euo pipefail
 
-# TODO: Ensure this is the correct GitHub homepage where releases can be downloaded for chromedriver.
 SOURCE="https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json"
-TOOL_NAME="chromedriver"
-TOOL_TEST="chromedriver --help"
+TOOL_NAME="chrome-for-testing"
+TOOL_TEST="chrome-for-testing --version"
 
 fail() {
   echo -e "asdf-$TOOL_NAME: $*"
@@ -47,7 +46,7 @@ release_url() {
   version="$1"
   platform="$2"
 
-  curl -s "$SOURCE" | jq -r ".versions[] | select(.version == \"$version\") | .downloads.chromedriver[] | select(.platform == \"$platform\") | .url"
+  curl -s "$SOURCE" | jq -r ".versions[] | select(.version == \"$version\") | .downloads.chrome[] | select(.platform == \"$platform\") | .url"
 }
 
 download_release() {
@@ -55,7 +54,7 @@ download_release() {
   version="$1"
   filename="$2"
 
-  # TODO: Adapt the release URL convention for chromedriver
+  # TODO: Adapt the release URL convention for chrome-for-testing
   # url="${SOURCE}/${version}/$(platform).zip"
   url=$(release_url $version $(platform))
 
@@ -74,9 +73,10 @@ install_version() {
 
   (
     mkdir -p "$install_path"
-    cp -r "$ASDF_DOWNLOAD_PATH"/chromedriver-$(platform)/* "$install_path"
+    cp -r "$ASDF_DOWNLOAD_PATH"/chrome-$(platform)/* "$install_path"
+    mv "$install_path/chrome" "$install_path/chrome-for-testing"
 
-    # TODO: Assert chromedriver executable exists.
+    # TODO: Assert chrome-for-testing executable exists.
     local tool_cmd
     tool_cmd="$(echo "$TOOL_TEST" | cut -d' ' -f1)"
     test -x "$install_path/$tool_cmd" || fail "Expected $install_path/$tool_cmd to be executable."
